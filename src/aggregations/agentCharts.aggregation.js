@@ -6,11 +6,9 @@ export function buildAgentTimeSeriesPipeline({
   endDate,
 }) {
   // Step 1: build the group stage dynamically
-  const groupFields = charts.reduce((acc, chart) => {
-    if (chart.aggregation === 'sum') {
-      acc[chart.name] = { $sum: `$${chart.metricPath}` }
-    } else {
-      throw new Error(`Unsupported aggregation: ${chart.aggregation}`)
+  const groupFields = charts.reduce((acc, [chartName, props]) => {
+    if (props.aggregation) {
+      acc[chartName] = props.aggregation
     }
     return acc
   }, {})
@@ -51,8 +49,8 @@ export function buildAgentTimeSeriesPipeline({
       $project: {
         _id: 0,
         date: { $dateToString: { date: '$_id', format: '%Y-%m-%d' } },
-        ...charts.reduce((acc, chart) => {
-          acc[chart.name] = 1
+        ...charts.reduce((acc, [chartName]) => {
+          acc[chartName] = 1
           return acc
         }, {}),
       },

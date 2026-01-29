@@ -5,9 +5,11 @@ import { fillTimeSeriesGaps } from '../utils/fillTimeSeriesGaps.js'
 import { agentDataCollection } from '../db/collections.js'
 
 export async function queryAgentCharts({ agentName, interval, startDate, endDate }) {
+  const agentChartsArr = Object.entries(AGENT_CHARTS)
+
   const pipeline = buildAgentTimeSeriesPipeline({
     agentName,
-    charts: AGENT_CHARTS,
+    charts: agentChartsArr,
     interval,
     startDate,
     endDate,
@@ -18,23 +20,28 @@ export async function queryAgentCharts({ agentName, interval, startDate, endDate
   // Fill gaps once for all metrics
   const filledSeries = fillTimeSeriesGaps(rawSeries, interval, startDate, endDate)
 
+  const completeSeries = filledSeries.map(row => {
+    const computed = { ...row }
+
+    for (const [chartName, props] of agentChartsArr) {
+      if (!props.compute) continue
+      computed[chartName] = props.compute(row)
+    }
+    return computed
+  })
+
   // Split series per chart
-  const chartsData = AGENT_CHARTS.map(chart => ({
-    name: chart.name,
+  const chartsData = agentChartsArr.map(([chartKey, properties]) => ({
+    name: chartKey,
     // series: rawSeries.map(row => ({
-    series: filledSeries.map(row => ({
+    series: completeSeries.map(row => ({
       date: row.date,
-      value: row[chart.name] || 0,
+      value: row[chartKey] || 0,
     })),
   }))
 
   return chartsData
 }
-// getAgentCharts({
-//   interval,
-//   startDate,
-//   endDate,
-// })
 
 // getAgentChart({
 //   agentId,
