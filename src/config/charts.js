@@ -63,7 +63,7 @@ export const AGENT_CHARTS = { ...BASE_CHARTS }
 export const COMPANY_CHARTS = {
   ...BASE_CHARTS,
 
-  activeAgents: {
-    aggregation: { $sum: '$data.agents.total' },
-  },
+  // activeAgents: {
+  //   aggregation: { $sum: '$data.agents.total' },
+  // },
 }

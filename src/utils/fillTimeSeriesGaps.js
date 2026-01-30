@@ -1,6 +1,8 @@
 import { addDays, addWeeks, addMonths, formatISO } from 'date-fns'
 
+// import { isSunday } from 'date-fns'
 import { alignStartDate } from './alignStartDate.js'
+import { isValidSkipDay } from './isValidSkipDay.js'
 
 const INCREMENT = {
   day: d => addDays(d, 1),
@@ -16,7 +18,7 @@ const INCREMENT = {
  * @param {Date} endDate
  * @returns filled array
  */
-export function fillTimeSeriesGaps(series, interval, startDate, endDate) {
+export function fillTimeSeriesGaps({ series, interval, skipDays, startDate, endDate }) {
   const filled = []
   const metricKeys = series.length ? Object.keys(series[0]).filter(k => k !== 'date') : []
 
@@ -32,6 +34,11 @@ export function fillTimeSeriesGaps(series, interval, startDate, endDate) {
 
   while (current <= endDate) {
     const isoDate = formatISO(current, { representation: 'date' })
+    // Skip skipDays if skipDays=false
+    if (isValidSkipDay({ date: isoDate, skipDays })) {
+      current = increment(current)
+      continue
+    }
 
     if (seriesMap[isoDate]) {
       filled.push(seriesMap[isoDate])

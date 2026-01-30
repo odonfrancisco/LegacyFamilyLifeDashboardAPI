@@ -1,18 +1,18 @@
 import { formatChartResponse } from '../utils/formatChartResponse.js'
 import { parseChartQuery } from '../utils/parseChartQuery.js'
 import { computeDateRange } from '../utils/dateRange.js'
-import { queryAgentCharts } from '../services/charts.service.js'
+import { queryAgentCharts, queryCompanyCharts } from '../services/charts.service.js'
 import { formatAgentName } from '../utils/formatAgentName.js'
 
 export async function getAgentCharts(req, res, next) {
   try {
     const { agentName: rawName } = req.params
-    const { interval, range } = parseChartQuery(req.query)
+    const { interval, range, skipDays } = parseChartQuery(req.query)
     const { startDate, endDate } = computeDateRange(range)
 
     const agentName = formatAgentName(rawName)
 
-    const charts = await queryAgentCharts({ agentName, interval, startDate, endDate })
+    const charts = await queryAgentCharts({ agentName, interval, skipDays, startDate, endDate })
 
     res.json({
       message: 'validated agent charts request',
@@ -56,7 +56,18 @@ export async function getAgentChart(req, res, next) {
 
 export async function getCompanyCharts(req, res, next) {
   try {
-    res.json({ message: 'getCompanyCharts not implemented' })
+    const { interval, range, skipDays } = parseChartQuery(req.query)
+    const { startDate, endDate } = computeDateRange(range)
+
+    const charts = await queryCompanyCharts({ interval, startDate, endDate, skipDays })
+
+    res.json({
+      message: 'validated agent charts request',
+      interval,
+      startDate,
+      endDate,
+      charts,
+    })
   } catch (err) {
     next(err)
   }

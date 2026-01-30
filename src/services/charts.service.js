@@ -1,47 +1,65 @@
-import { AGENT_CHARTS } from '../config/charts.js'
-import { buildAgentTimeSeriesPipeline } from '../aggregations/agentCharts.aggregation.js'
-import { fillTimeSeriesGaps } from '../utils/fillTimeSeriesGaps.js'
+import { AGENT_CHARTS, COMPANY_CHARTS } from '../config/charts.js'
+// import { buildAgentTimeSeriesPipeline } from '../aggregations/buildTimeSeriesPipeline.js'
+// import { fillTimeSeriesGaps } from '../utils/fillTimeSeriesGaps.js'
+import { runTimeSeriesCharts } from './timeSerieseChartEngine.js'
 
-import { agentDataCollection } from '../db/collections.js'
+import { agentDataCollection, companyDataCollection } from '../db/collections.js'
 
-export async function queryAgentCharts({ agentName, interval, startDate, endDate }) {
-  const agentChartsArr = Object.entries(AGENT_CHARTS)
-
-  const pipeline = buildAgentTimeSeriesPipeline({
-    agentName,
-    charts: agentChartsArr,
-    interval,
-    startDate,
-    endDate,
+export async function queryAgentCharts(params) {
+  return runTimeSeriesCharts({
+    collection: agentDataCollection(),
+    chartRegistry: AGENT_CHARTS,
+    match: { agentName: params.agentName },
+    ...params,
   })
-
-  const rawSeries = await agentDataCollection().aggregate(pipeline).toArray()
-
-  // Fill gaps once for all metrics
-  const filledSeries = fillTimeSeriesGaps(rawSeries, interval, startDate, endDate)
-
-  const completeSeries = filledSeries.map(row => {
-    const computed = { ...row }
-
-    for (const [chartName, props] of agentChartsArr) {
-      if (!props.compute) continue
-      computed[chartName] = props.compute(row)
-    }
-    return computed
-  })
-
-  // Split series per chart
-  const chartsData = agentChartsArr.map(([chartKey, properties]) => ({
-    name: chartKey,
-    // series: rawSeries.map(row => ({
-    series: completeSeries.map(row => ({
-      date: row.date,
-      value: row[chartKey] || 0,
-    })),
-  }))
-
-  return chartsData
 }
+
+export async function queryCompanyCharts(params) {
+  return runTimeSeriesCharts({
+    collection: companyDataCollection(),
+    chartRegistry: COMPANY_CHARTS,
+    ...params,
+  })
+}
+
+// export async function queryAgentCharts({ agentName, interval, startDate, endDate }) {
+//   const agentChartsArr = Object.entries(AGENT_CHARTS)
+
+//   const pipeline = buildAgentTimeSeriesPipeline({
+//     agentName,
+//     charts: agentChartsArr,
+//     interval,
+//     startDate,
+//     endDate,
+//   })
+
+//   const rawSeries = await agentDataCollection().aggregate(pipeline).toArray()
+
+//   // Fill gaps once for all metrics
+//   const filledSeries = fillTimeSeriesGaps(rawSeries, interval, startDate, endDate)
+
+//   const completeSeries = filledSeries.map(row => {
+//     const computed = { ...row }
+
+//     for (const [chartName, props] of agentChartsArr) {
+//       if (!props.compute) continue
+//       computed[chartName] = props.compute(row)
+//     }
+//     return computed
+//   })
+
+//   // Split series per chart
+//   const chartsData = agentChartsArr.map(([chartKey, properties]) => ({
+//     name: chartKey,
+//     // series: rawSeries.map(row => ({
+//     series: completeSeries.map(row => ({
+//       date: row.date,
+//       value: row[chartKey] || 0,
+//     })),
+//   }))
+
+//   return chartsData
+// }
 
 // getAgentChart({
 //   agentId,
