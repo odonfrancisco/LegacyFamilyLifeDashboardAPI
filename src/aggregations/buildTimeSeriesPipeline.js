@@ -1,15 +1,16 @@
 export function buildTimeSeriesPipeline({
   match = {},
   groupBy = null, // 'agentId', 'companyId', or null
-  charts, // array of [chartName, config]
+  charts, // Chart Object  {chartName, config}
   interval,
   startDate,
   endDate,
 }) {
-  const chartNames = charts.map(([name]) => name)
+  const chartEntries = Object.entries(charts)
+  const chartNames = chartEntries.map(([name]) => name)
 
   // Build group fields dynamically
-  const groupFields = charts.reduce((acc, [chartName, props]) => {
+  const groupFields = chartEntries.reduce((acc, [chartName, props]) => {
     if (props.aggregation) {
       acc[groupBy ? 'value' : chartName] = props.aggregation
     }
@@ -59,7 +60,7 @@ export function buildTimeSeriesPipeline({
           series: {
             $push: {
               x: { $dateToString: { date: '$_id.bucket', format: '%Y-%m-%d' } },
-              y: '$value',
+              y: { $round: ['$value', 2] },
             },
           },
         },
@@ -76,7 +77,7 @@ export function buildTimeSeriesPipeline({
         $project: {
           _id: 0,
           x: { $dateToString: { date: '$_id', format: '%Y-%m-%d' } },
-          values: chartNames.map(name => ({ k: name, v: `$${name}` })),
+          values: chartNames.map(name => ({ k: name, v: { $round: [`$${name}`, 2] } })),
         },
       },
       { $unwind: '$values' },

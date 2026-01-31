@@ -1,15 +1,24 @@
-import { AGENT_CHARTS, COMPANY_CHARTS } from '../config/charts.js'
+import {
+  AGENT_CHARTS,
+  AGENT_CHART_ORDER,
+  COMPANY_CHARTS,
+  COMPANY_CHART_ORDER,
+} from '../config/charts.js'
 // import { buildAgentTimeSeriesPipeline } from '../aggregations/buildTimeSeriesPipeline.js'
 // import { fillTimeSeriesGaps } from '../utils/fillTimeSeriesGaps.js'
 import { runTimeSeriesCharts } from './timeSerieseChartEngine.js'
 import { fetchActiveAgents } from './agents.service.js'
 import { agentDataCollection, companyDataCollection } from '../db/collections.js'
 
+import { sortByTotalVolumeDesc } from '../utils/sortByTotalVolumes.js'
+import { sortByFixedOrder } from '../utils/sortByFixedOrder.js'
+
 export async function queryAgentCharts(params) {
   return runTimeSeriesCharts({
     collection: agentDataCollection(),
     chartRegistry: AGENT_CHARTS,
     match: { agentId: params.agentId },
+    sort: { fn: sortByFixedOrder, opts: AGENT_CHART_ORDER },
     ...params,
   })
 }
@@ -18,6 +27,7 @@ export async function queryCompanyCharts(params) {
   return runTimeSeriesCharts({
     collection: companyDataCollection(),
     chartRegistry: COMPANY_CHARTS,
+    sort: { fn: sortByFixedOrder, opts: AGENT_CHART_ORDER },
     ...params,
   })
 }
@@ -30,6 +40,7 @@ export async function queryCompareCharts(params) {
     chartRegistry: { [`${params.chartName}`]: AGENT_CHARTS[params.chartName] },
     groupBy: 'agentId',
     match: { agentId: { $in: agents.map(({ agentId }) => agentId) } },
+    sort: { fn: sortByTotalVolumeDesc },
     ...params,
   })
 }

@@ -1,5 +1,7 @@
 import { buildTimeSeriesPipeline } from '../aggregations/buildTimeSeriesPipeline.js'
 import { fillTimeSeriesGaps } from '../utils/fillTimeSeriesGaps.js'
+import { sortByTotalVolumeDesc } from '../utils/sortByTotalVolumes.js'
+import { computeSeries } from '../utils/computeSeries.js'
 
 export async function runTimeSeriesCharts({
   collection,
@@ -10,10 +12,11 @@ export async function runTimeSeriesCharts({
   endDate,
   skipDays,
   groupBy,
+  sort,
 }) {
   // 1️⃣ Resolve requested charts
   //   const requestedCharts = chartKeys.map(k => chartRegistry[k])
-  const chartsArr = Object.entries(chartRegistry)
+  // const chartsArr = Object.entries(chartRegistry)
 
   // 2️⃣ Expand dependencies
   //   const requiredKeys = new Set(chartKeys)
@@ -26,7 +29,7 @@ export async function runTimeSeriesCharts({
   // 3️⃣ Build & run aggregation
   const pipeline = buildTimeSeriesPipeline({
     match,
-    charts: chartsArr,
+    charts: chartRegistry,
     interval,
     startDate,
     endDate,
@@ -44,6 +47,7 @@ export async function runTimeSeriesCharts({
     endDate,
   })
 
+  const completeSeries = computeSeries({ series: filledSeries, charts: chartRegistry })
   // 5️⃣ Compute derived metrics
   // const completeSeries = filledSeries.map(row => {
   //   const computed = { ...row }
@@ -55,8 +59,10 @@ export async function runTimeSeriesCharts({
   //   return computed
   // })
 
+  const orderedCharts = sort ? sort.fn(completeSeries, sort.opts) : completeSeries
+
   return {
     interval,
-    charts: filledSeries,
+    charts: orderedCharts,
   }
 }

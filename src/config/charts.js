@@ -17,13 +17,16 @@ const BASE_CHARTS = {
   contactToPresentationRate: {
     compute: row =>
       row.contacts > 0 ? Number(((row.presentations / row.contacts) * 100).toFixed(2)) : 0,
+    dependsOn: ['presentations', 'contacts'],
   },
   presentationToCloseRate: {
     compute: row =>
       row.presentations > 0 ? Number(((row.sales / row.presentations) * 100).toFixed(2)) : 0,
+    dependsOn: ['presentations', 'sales'],
   },
   contactToCloseRate: {
     compute: row => (row.contacts > 0 ? Number(((row.sales / row.contacts) * 100).toFixed(2)) : 0),
+    dependsOn: ['contacts', 'sales'],
   },
   manualDials: {
     aggregation: { $sum: '$data.dials.manual' },
@@ -34,6 +37,7 @@ const BASE_CHARTS = {
 }
 
 export const AGENT_CHARTS = { ...BASE_CHARTS }
+export const AGENT_CHART_ORDER = Object.keys(AGENT_CHARTS)
 export const COMPANY_CHARTS = {
   ...BASE_CHARTS,
 
@@ -41,3 +45,4 @@ export const COMPANY_CHARTS = {
   //   aggregation: { $sum: '$data.agents.total' },
   // },
 }
+export const COMPANY_CHART_ORDER = Object.keys(COMPANY_CHARTS)
