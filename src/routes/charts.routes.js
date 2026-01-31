@@ -6,10 +6,12 @@ import {
   getCompanyCharts,
   getCompanyChart,
   getCompareCharts,
+  getAgentChartNames,
 } from '../controllers/charts.controller.js'
 
 const router = Router()
 
+router.get('/names', getAgentChartNames)
 /**
  * Agent charts
  */

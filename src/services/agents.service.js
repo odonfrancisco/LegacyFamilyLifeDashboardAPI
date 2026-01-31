@@ -5,6 +5,12 @@ const EXCLUDED_AGENTS = [
   'marissa_marissa_(inbound)',
   'marissa_marissa_v2_(inbound)',
   'progressive_dialer',
+  'david_toelle',
+  'micah_metcalf',
+  'byron_bierce',
+  'isaiah_de_deos',
+  'andrew_foley',
+  'ian_randies',
 ]
 
 export async function fetchActiveAgents({ days = 14 }) {

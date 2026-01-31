@@ -1,11 +1,21 @@
 export function buildTimeSeriesPipeline({
-  match,
+  match = {},
+  groupBy = null, // 'agentId', 'companyId', or null
+  charts, // array of [chartName, config]
   interval,
   startDate,
   endDate,
-  charts,
-  groupBy = null,
 }) {
+  const chartNames = charts.map(([name]) => name)
+
+  // Build group fields dynamically
+  const groupFields = charts.reduce((acc, [chartName, props]) => {
+    if (props.aggregation) {
+      acc[groupBy ? 'value' : chartName] = props.aggregation
+    }
+    return acc
+  }, {})
+
   const bucketExpr = {
     $dateTrunc: {
       date: '$businessDate',
@@ -14,58 +24,32 @@ export function buildTimeSeriesPipeline({
     },
   }
 
-  const groupFields = charts.reduce((acc, [chartName, props]) => {
-    if (props.aggregation) {
-      acc[groupBy ? 'value' : chartName] = props.aggregation
-    }
-    return acc
-  }, {})
-
-  const project = !groupBy && {
-    _id: 0,
-    x: { $dateToString: { date: '$_id', format: '%Y-%m-%d' } },
-
-    ...charts.reduce((acc, [chartName]) => {
-      acc[chartName] = 1
-      return acc
-    }, {}),
-  }
-
-  const sort = groupBy ? { x: 1 } : { date: 1 }
-
   const pipeline = [
+    // 1️⃣ Match
     {
       $match: {
         ...match,
-
-        businessDate: {
-          $gte: startDate,
-          $lte: endDate,
-        },
+        businessDate: { $gte: startDate, $lte: endDate },
       },
     },
-    groupBy
-      ? {
-          $group: {
-            _id: {
-              bucket: bucketExpr,
-              entityId: `$${groupBy}`,
-            },
-            name: {
-              $first: groupBy === 'agentId' ? '$agentName' : '$companyName',
-            },
+
+    // 2️⃣ Group by time (and optionally entity)
+    {
+      $group: groupBy
+        ? {
+            _id: { bucket: bucketExpr, entityId: `$${groupBy}` },
+            name: { $first: groupBy === 'agentId' ? '$agentName' : '$companyName' },
             ...groupFields,
-          },
-        }
-      : {
-          $group: {
+          }
+        : {
             _id: bucketExpr,
             ...groupFields,
           },
-        },
+    },
   ]
 
   if (groupBy) {
+    // 3a️⃣ Build series per entity
     pipeline.push(
       {
         $group: {
@@ -74,43 +58,35 @@ export function buildTimeSeriesPipeline({
           name: { $first: '$name' },
           series: {
             $push: {
-              //   x: '$_id.bucket',
-              x: {
-                $dateToString: {
-                  date: '$_id.bucket',
-                  format: '%Y-%m-%d',
-                },
-              },
+              x: { $dateToString: { date: '$_id.bucket', format: '%Y-%m-%d' } },
               y: '$value',
             },
           },
         },
       },
       {
-        $addFields: {
-          series: {
-            $sortArray: {
-              input: '$series',
-              sortBy: { x: 1 },
-            },
-          },
-        },
+        $addFields: { series: { $sortArray: { input: '$series', sortBy: { x: 1 } } } },
       },
+      { $project: { _id: 0, entityId: 1, name: 1, series: 1 } },
+    )
+  } else {
+    // 3b️⃣ Flatten dynamic charts for compare charts
+    pipeline.push(
       {
         $project: {
           _id: 0,
-          entityId: 1,
-          name: 1,
-          series: 1,
+          x: { $dateToString: { date: '$_id', format: '%Y-%m-%d' } },
+          values: chartNames.map(name => ({ k: name, v: `$${name}` })),
         },
       },
-    )
-  } else {
-    pipeline.push(
+      { $unwind: '$values' },
       {
-        $project: project,
+        $group: {
+          _id: '$values.k',
+          series: { $push: { x: '$x', y: { $ifNull: ['$values.v', 0] } } },
+        },
       },
-      { $sort: sort },
+      { $project: { _id: 0, name: '$_id', series: 1 } },
     )
   }
 

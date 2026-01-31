@@ -1,11 +1,24 @@
 import { formatChartResponse } from '../utils/formatChartResponse.js'
 import { parseChartQuery } from '../utils/parseChartQuery.js'
 import { computeDateRange } from '../utils/dateRange.js'
+import { AGENT_CHARTS } from '../config/charts.js'
+
 import {
   queryAgentCharts,
   queryCompanyCharts,
   queryCompareCharts,
 } from '../services/charts.service.js'
+
+export async function getAgentChartNames(req, res, next) {
+  try {
+    res.json({
+      message: 'validated agent charts request',
+      names: Object.keys(AGENT_CHARTS),
+    })
+  } catch (err) {
+    next(err)
+  }
+}
 
 export async function getAgentCharts(req, res, next) {
   try {

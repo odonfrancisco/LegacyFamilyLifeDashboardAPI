@@ -2,7 +2,7 @@ import { AGENT_CHARTS, COMPANY_CHARTS } from '../config/charts.js'
 // import { buildAgentTimeSeriesPipeline } from '../aggregations/buildTimeSeriesPipeline.js'
 // import { fillTimeSeriesGaps } from '../utils/fillTimeSeriesGaps.js'
 import { runTimeSeriesCharts } from './timeSerieseChartEngine.js'
-
+import { fetchActiveAgents } from './agents.service.js'
 import { agentDataCollection, companyDataCollection } from '../db/collections.js'
 
 export async function queryAgentCharts(params) {
@@ -23,10 +23,13 @@ export async function queryCompanyCharts(params) {
 }
 
 export async function queryCompareCharts(params) {
+  // fetchActiveAgents needs to cache that asap
+  const agents = await fetchActiveAgents({})
   return runTimeSeriesCharts({
     collection: agentDataCollection(),
-    chartRegistry: [AGENT_CHARTS[params.chartName]],
+    chartRegistry: { [`${params.chartName}`]: AGENT_CHARTS[params.chartName] },
     groupBy: 'agentId',
+    match: { agentId: { $in: agents.map(({ agentId }) => agentId) } },
     ...params,
   })
 }
