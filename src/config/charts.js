@@ -5,6 +5,10 @@ const BASE_CHARTS = {
   sales: {
     aggregation: { $sum: '$data.sales.total' },
   },
+  averagePremium: {
+    compute: row => (row.sales > 0 ? Number((row.premium / row.sales).toFixed(2)) : 0),
+    dependsOn: ['premium', 'sales'],
+  },
   dials: {
     aggregation: { $sum: '$data.dials.total' },
   },
