@@ -21,7 +21,7 @@ export function buildTimeSeriesPipeline({
     $dateTrunc: {
       date: '$businessDate',
       unit: interval,
-      startOfWeek: interval === 'week' ? 'Mon' : undefined,
+      ...(interval === 'week' && { startOfWeek: 'Mon' }),
     },
   }
 
