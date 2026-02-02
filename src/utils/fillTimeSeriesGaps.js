@@ -44,7 +44,7 @@ export function fillTimeSeriesGaps({ charts, interval, skipDays, startDate, endD
       }
 
       filled.push({
-        x: new Date(current),
+        x: isoDate,
         y: seriesMap[isoDate] ?? 0,
       })
 
